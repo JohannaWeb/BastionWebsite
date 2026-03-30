@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bastion — Sovereign Computing Stack</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --fg: #f0ede8;
+    --accent: #c8ff00;
+    --accent2: #ff6b35;
+    --muted: #3a3a3a;
+    --muted2: #888;
+    --border: #1e1e1e;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.4;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    padding: 1.5rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.3s, background 0.3s;
+  }
+
+  nav.scrolled {
+    border-color: var(--border);
+    background: rgba(10,10,10,0.95);
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--fg);
+    text-decoration: none;
+  }
+
+  .nav-logo span { color: var(--accent); }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--muted2);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--fg); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 3rem;
+    padding-bottom: 5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(200,255,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,255,0,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridMove 20s linear infinite;
+  }
+
+  @keyframes gridMove {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(60px); }
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(200,255,0,0.3);
+    padding: 0.4rem 0.8rem;
+    margin-bottom: 2rem;
+    width: fit-content;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.2s;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.5); }
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(4rem, 12vw, 11rem);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.4s;
+  }
+
+  .hero h1 .line2 {
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(240,237,232,0.3);
+  }
+
+  .hero-sub {
+    margin-top: 2.5rem;
+    max-width: 480px;
+    color: var(--muted2);
+    font-size: 13px;
+    line-height: 1.8;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.6s;
+  }
+
+  .hero-actions {
+    margin-top: 2.5rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 0.8s;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.8rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+
+  .btn-primary:hover {
+    background: #fff;
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid var(--muted);
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--fg);
+    transform: translateY(-2px);
+  }
+
+  .hero-stats {
+    position: absolute;
+    right: 3rem;
+    bottom: 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 1s;
+  }
+
+  .stat {
+    text-align: right;
+  }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 2rem;
+    color: var(--accent);
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* MARQUEE */
+  .marquee-wrap {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 0;
+    overflow: hidden;
+    background: var(--border);
+  }
+
+  .marquee {
+    display: flex;
+    gap: 3rem;
+    animation: marquee 20s linear infinite;
+    white-space: nowrap;
+  }
+
+  .marquee span {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted2);
+    flex-shrink: 0;
+  }
+
+  .marquee span.accent { color: var(--accent); }
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* SECTIONS */
+  section {
+    padding: 8rem 3rem;
+  }
+
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 5vw, 4rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    max-width: 700px;
+  }
+
+  /* STACK */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1px;
+    margin-top: 5rem;
+    border: 1px solid var(--border);
+  }
+
+  .stack-item {
+    padding: 2.5rem;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+
+  .stack-item:hover {
+    background: rgba(200,255,0,0.03);
+  }
+
+  .stack-item::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 0; height: 2px;
+    background: var(--accent);
+    transition: width 0.4s ease;
+  }
+
+  .stack-item:hover::after { width: 100%; }
+
+  .stack-num {
+    font-size: 11px;
+    color: var(--muted2);
+    letter-spacing: 0.15em;
+    margin-bottom: 1.5rem;
+  }
+
+  .stack-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+  }
+
+  .stack-tech {
+    font-size: 11px;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .stack-desc {
+    color: var(--muted2);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .stack-tag {
+    display: inline-block;
+    margin-top: 1.5rem;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted2);
+  }
+
+  .stack-tag.live {
+    border-color: rgba(200,255,0,0.4);
+    color: var(--accent);
+  }
+
+  /* MANIFESTO */
+  .manifesto {
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+  }
+
+  .manifesto-quote {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .manifesto-quote em {
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  .manifesto-body {
+    color: var(--muted2);
+    line-height: 1.9;
+    font-size: 13px;
+  }
+
+  .manifesto-body p + p { margin-top: 1rem; }
+
+  /* RESEARCH */
+  .research-list {
+    margin-top: 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .research-item {
+    padding: 2rem 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 2rem;
+    align-items: start;
+    text-decoration: none;
+    color: inherit;
+    transition: padding-left 0.3s;
+  }
+
+  .research-item:hover {
+    padding-left: 1rem;
+  }
+
+  .research-item:hover .research-title { color: var(--accent); }
+
+  .research-idx {
+    font-size: 11px;
+    color: var(--muted2);
+    letter-spacing: 0.1em;
+    padding-top: 2px;
+  }
+
+  .research-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.3;
+    transition: color 0.2s;
+    margin-bottom: 0.5rem;
+  }
+
+  .research-desc {
+    font-size: 12px;
+    color: var(--muted2);
+    line-height: 1.6;
+  }
+
+  .research-arrow {
+    color: var(--muted2);
+    font-size: 1.2rem;
+    transition: transform 0.2s, color 0.2s;
+  }
+
+  .research-item:hover .research-arrow {
+    transform: translate(4px, -4px);
+    color: var(--accent);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .footer-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .footer-logo span { color: var(--accent); }
+
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .footer-links a {
+    color: var(--muted2);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--fg); }
+
+  .footer-copy {
+    font-size: 11px;
+    color: var(--muted2);
+  }
+
+  /* SCROLL REVEAL */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    nav { padding: 1.5rem; }
+    .hero { padding: 1.5rem; padding-bottom: 4rem; }
+    .hero-stats { position: static; margin-top: 2rem; flex-direction: row; }
+    section { padding: 5rem 1.5rem; }
+    .manifesto { grid-template-columns: 1fr; gap: 3rem; }
+    .research-item { grid-template-columns: auto 1fr; }
+    .research-arrow { display: none; }
+    footer { padding: 2rem 1.5rem; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <a href="#" class="nav-logo">Bastion<span>.</span></a>
+  <ul class="nav-links">
+    <li><a href="#stack">Stack</a></li>
+    <li><a href="#research">Research</a></li>
+    <li><a href="https://juntos.chat">Juntos</a></li>
+    <li><a href="https://github.com/JohannaWeb/Bastion">GitHub</a></li>
+  </ul>
+</nav>
+
+<section class="hero">
+  <div class="hero-grid"></div>
+
+  <div class="hero-badge">Live in Production</div>
+
+  <h1>
+    Sovereign<br>
+    <span class="line2">Computing</span>
+  </h1>
+
+  <p class="hero-sub">
+    A vertically integrated computing stack — built from the OS layer to the browser, IDE, AI model, and decentralized social protocol. Open source. Solo-built in 36 days. No Google. No Microsoft. No Meta.
+  </p>
+
+  <div class="hero-actions">
+    <a href="https://github.com/JohannaWeb/Bastion" class="btn btn-primary">View on GitHub ↗</a>
+    <a href="https://juntos.chat" class="btn btn-secondary">Try Juntos →</a>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat">
+      <span class="stat-num">8</span>
+      <span class="stat-label">Projects</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">36</span>
+      <span class="stat-label">Days</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num">3</span>
+      <span class="stat-label">Papers</span>
+    </div>
+  </div>
+</section>
+
+<div class="marquee-wrap">
+  <div class="marquee">
+    <span class="accent">▸ Aurora</span>
+    <span>Rust Browser Engine</span>
+    <span class="accent">▸ MonarchOS</span>
+    <span>64-bit Rust Kernel</span>
+    <span class="accent">▸ Juntos</span>
+    <span>Decentralized Chat</span>
+    <span class="accent">▸ ProjectFalcon</span>
+    <span>AT Protocol SDK</span>
+    <span class="accent">▸ Opus</span>
+    <span>Agentic IDE</span>
+    <span class="accent">▸ Monarch</span>
+    <span>Local AI Model</span>
+    <span class="accent">▸ FalconPub</span>
+    <span>ActivityPub Server</span>
+    <span class="accent">▸ Aurora</span>
+    <span>Rust Browser Engine</span>
+    <span class="accent">▸ MonarchOS</span>
+    <span>64-bit Rust Kernel</span>
+    <span class="accent">▸ Juntos</span>
+    <span>Decentralized Chat</span>
+    <span class="accent">▸ ProjectFalcon</span>
+    <span>AT Protocol SDK</span>
+    <span class="accent">▸ Opus</span>
+    <span>Agentic IDE</span>
+    <span class="accent">▸ Monarch</span>
+    <span>Local AI Model</span>
+    <span class="accent">▸ FalconPub</span>
+    <span>ActivityPub Server</span>
+  </div>
+</div>
+
+<section id="stack">
+  <p class="section-label reveal">The Stack</p>
+  <h2 class="section-title reveal">Eight projects.<br>One vision.</h2>
+
+  <div class="stack-grid">
+    <div class="stack-item reveal">
+      <div class="stack-num">01</div>
+      <div class="stack-name">Aurora</div>
+      <div class="stack-tech">Rust · wgpu · ab_glyph</div>
+      <p class="stack-desc">Hand-rolled HTML parser and CSS cascade engine with GPU rendering pipeline. No Chromium. No WebView. Box model layout, descendant selectors, shorthand parsing.</p>
+      <span class="stack-tag">Browser Engine</span>
+    </div>
+    <div class="stack-item reveal">
+      <div class="stack-num">02</div>
+      <div class="stack-name">Gisberta</div>
+      <div class="stack-tech">Rust · AT Protocol · DID</div>
+      <p class="stack-desc">Sovereign browser shell built on Aurora with DID-native identity, AT Protocol integration, and local AI inference.</p>
+      <span class="stack-tag">Browser Shell</span>
+    </div>
+    <div class="stack-item reveal">
+      <div class="stack-num">03</div>
+      <div class="stack-name">MonarchOS</div>
+      <div class="stack-tech">Rust · x86-64</div>
+      <p class="stack-desc">64-bit Rust kernel with custom process scheduler, memory manager, and decentralized identity runtime. The machine layer of the Bastion stack.</p>
+      <span class="stack-tag">Kernel</span>
+    </div>
+    <div class="stack-item reveal">
+      <div class="stack-num">04</div>
+      <div class="stack-name">Juntos</div>
+      <div class="stack-tech">AT Protocol · Real-time</div>
+      <p class="stack-desc">World-first pure AT Protocol implementation of real-time decentralized chat. No wrappers. No non-spec extensions. Live in production. Built for trans and queer communities.</p>
+      <span class="stack-tag live">● Live</span>
+    </div>
+    <div class="stack-item reveal">
+      <div class="stack-num">05</div>
+      <div class="stack-name">ProjectFalcon</div>
+      <div class="stack-tech">Java · secp256k1 · EAS</div>
+      <p class="stack-desc">World-first native JVM implementation of AT Protocol. Hand-rolled ES256K/secp256k1 cryptographic verification. Adversarial trust protocol with Sybil resistance and temporal decay.</p>
+      <span class="stack-tag">SDK + Trust Layer</span>
+    </div>
+    <div class="stack-item reveal">
+      <div class="stack-num">06</div>
+      <div class="stack-name">Opus</div>
+      <div class="stack-tech">Rust · Tauri</div>
+      <p class="stack-desc">Policy-enforced execution environment. Every principal has a DID-like identifier with declared capabilities, approvals, and signed provenance. Not "an editor with a chatbot."</p>
+      <span class="stack-tag">Agentic IDE</span>
+    </div>
+    <div class="stack-item reveal">
+      <div class="stack-num">07</div>
+      <div class="stack-name">Monarch</div>
+      <div class="stack-tech">Mistral · PyTorch · Unsloth</div>
+      <p class="stack-desc">Expert SLM fine-tuned on the Bastion codebase. 4-bit quantization, aggressive KV cache compression, RAG. Claude-grade local inference on a 4060 Ti.</p>
+      <span class="stack-tag">Local AI</span>
+    </div>
+    <div class="stack-item reveal">
+      <div class="stack-num">08</div>
+      <div class="stack-name">FalconPub</div>
+      <div class="stack-tech">ActivityPub · AT Protocol</div>
+      <p class="stack-desc">ActivityPub federation server and Falcon-Bridge interoperability layer — connecting AT Protocol and the Fediverse across protocol boundaries.</p>
+      <span class="stack-tag">Federation</span>
+    </div>
+  </div>
+</section>
+
+<section class="manifesto">
+  <div class="reveal">
+    <p class="section-label">Philosophy</p>
+    <h2 class="manifesto-quote">Infrastructure for people the internet was <em>built to exclude.</em></h2>
+  </div>
+  <div class="reveal">
+    <div class="manifesto-body">
+      <p>The modern web stack is controlled by three companies. Your identity lives on their servers. Your messages pass through their pipes. Your browser runs their code.</p>
+      <p>Bastion is a bet that this doesn't have to be true. A full computing stack — from the kernel to the browser to the social layer — where every component is open, auditable, and owned by the user.</p>
+      <p>Built in Porto, Portugal. Funded by nobody. Shipped anyway.</p>
+      <div style="margin-top: 2rem;">
+        <a href="https://github.com/sponsors/JohannaWeb" class="btn btn-primary">Support the Work ↗</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="research" style="border-top: 1px solid var(--border);">
+  <p class="section-label reveal">Research</p>
+  <h2 class="section-title reveal">Three papers.<br>March 2026.</h2>
+
+  <div class="research-list">
+    <a href="https://github.com/JohannaWeb/ProjectFalcon/releases/tag/v1.0-paper" class="research-item reveal" target="_blank">
+      <span class="research-idx">01</span>
+      <div>
+        <div class="research-title">Project Falcon: An Adversarial Algorithmic Trust Protocol for Decentralized Social Identity</div>
+        <p class="research-desc">Formal security analysis of manipulation-resistant decentralized reputation. Addresses the bootstrapping vulnerability in EigenTrust (Kamvar et al.).</p>
+      </div>
+      <span class="research-arrow">↗</span>
+    </a>
+    <a href="https://github.com/JohannaWeb/Monarch/releases/tag/2.1.paper" class="research-item reveal" target="_blank">
+      <span class="research-idx">02</span>
+      <div>
+        <div class="research-title">Identity-Driven Discourse Systems (IDDS) v2.1: Automated Conflict Modeling and Sovereign Moderation</div>
+        <p class="research-desc">Formal taxonomy and transition model for online discourse degradation, including Moral Protective Framing detection and Transient Dogpile Group tracking.</p>
+      </div>
+      <span class="research-arrow">↗</span>
+    </a>
+    <a href="https://github.com/JohannaWeb/Juntos/releases/tag/0.0.1" class="research-item reveal" target="_blank">
+      <span class="research-idx">03</span>
+      <div>
+        <div class="research-title">Radical Alignment: Training AI through the Lens of bell hooks' Radical Love</div>
+        <p class="research-desc">An AI alignment framework grounded in bell hooks' philosophy of radical love — care, accountability, and community as training principles.</p>
+      </div>
+      <span class="research-arrow">↗</span>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">Bastion<span>.</span></div>
+  <ul class="footer-links">
+    <li><a href="https://github.com/JohannaWeb/Bastion">GitHub</a></li>
+    <li><a href="https://juntos.chat">Juntos</a></li>
+    <li><a href="https://github.com/sponsors/JohannaWeb">Sponsor</a></li>
+  </ul>
+  <p class="footer-copy">MIT License · Porto, Portugal · 2026</p>
+</footer>
+
+<script>
+  // Nav scroll
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  reveals.forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
